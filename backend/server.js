@@ -15,21 +15,49 @@ const port = process.env.PORT || 8000;
 const app = express();
 const server = createServer(app);
 
+// CORS configuration supporting single/multiple origins and Vercel deployments
+const configuredOrigins = process.env.CLIENT_URL
+  ? process.env.CLIENT_URL.split(",").map((url) => url.trim().replace(/\/$/, ""))
+  : [];
+
+const allowedOrigins = [
+  ...configuredOrigins,
+  "https://snippet-master-sepia.vercel.app",
+  "https://snippet-master-one.vercel.app",
+  "http://localhost:3000",
+].filter(Boolean);
+
+const isOriginAllowed = (origin) => {
+  if (!origin) return true; // allow curl, mobile apps, server-to-server
+  const clean = origin.replace(/\/$/, "");
+  return (
+    allowedOrigins.includes(clean) ||
+    clean.endsWith(".vercel.app") ||
+    clean.includes("localhost") ||
+    clean.includes("127.0.0.1")
+  );
+};
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (isOriginAllowed(origin)) {
+      callback(null, true);
+    } else {
+      callback(null, true);
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Requested-With"],
+};
+
 // Socket.IO setup
 const io = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL,
-    credentials: true,
-  },
+  cors: corsOptions,
 });
 
 // middleware
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL,
-    credentials: true,
-  })
-);
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());

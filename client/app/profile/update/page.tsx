@@ -4,6 +4,7 @@ import Image from "next/image";
 import React from "react";
 import { FaGithub, FaLinkedin, FaEnvelope } from "react-icons/fa";
 import toast from "react-hot-toast";
+import { API_URL } from "@/utils/apiConfig";
 
 function page() {
   const { user, updateUser, changePassword, userState, handlerUserInput } =
@@ -36,7 +37,7 @@ function page() {
 
   const updateUserWithImage = async (formData: FormData) => {
     try {
-      const response = await fetch("https://snippet-master-harsh810.onrender.com/api/v1/user", {
+      const response = await fetch(`${API_URL}/user`, {
         method: "PATCH",
         credentials: "include",
         body: formData,

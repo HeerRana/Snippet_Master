@@ -4,6 +4,7 @@ import { FaExchangeAlt, FaCopy, FaDownload } from "react-icons/fa";
 import toast from "react-hot-toast";
 import SyntaxHighlighter from "react-syntax-highlighter";
 import { vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { API_URL } from "@/utils/apiConfig";
 
 const CodeConverter = () => {
   const [sourceCode, setSourceCode] = useState("");
@@ -48,7 +49,7 @@ const CodeConverter = () => {
 
   const convertCodeWithGemini = async (code: string, from: string, to: string) => {
     try {
-      const response = await fetch("https://snippet-master-harsh810.onrender.com/api/v1/convert-code", {
+      const response = await fetch(`${API_URL}/convert-code`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

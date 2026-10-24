@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import { io } from "socket.io-client";
 import { useUserContext } from "./userContext";
 import toast from "react-hot-toast";
+import { SERVER_URL } from "../utils/apiConfig";
 
 const RealTimeContext = createContext();
 
@@ -14,7 +15,7 @@ export const RealTimeProvider = ({ children }) => {
 
   useEffect(() => {
     // Initialize socket connection with better error handling
-    const newSocket = io("https://snippet-master-harsh810.onrender.com", {
+    const newSocket = io(SERVER_URL, {
       withCredentials: true,
       transports: ['websocket', 'polling'], // Try WebSocket first, fallback to polling
       timeout: 10000, // 10 second timeout

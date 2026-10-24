@@ -2,23 +2,24 @@ import asyncHandler from "express-async-handler";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Initialize Gemini AI with multiple models
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const apiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_API_KEY || "";
+const genAI = new GoogleGenerativeAI(apiKey);
 
-// Model configurations with fallback - Best 3 models
+// Model configurations with fallback - Available Google Gemini models
 const models = [
   { 
-    name: "gemini-2.5-pro", 
-    model: genAI.getGenerativeModel({ model: "gemini-2.5-pro" }),
+    name: "gemini-1.5-flash", 
+    model: genAI.getGenerativeModel({ model: "gemini-1.5-flash" }),
     priority: 1
   },
   { 
-    name: "gemini-2.5-flash", 
-    model: genAI.getGenerativeModel({ model: "gemini-2.5-flash" }),
+    name: "gemini-1.5-pro", 
+    model: genAI.getGenerativeModel({ model: "gemini-1.5-pro" }),
     priority: 2
   },
   { 
-    name: "gemini-1.5-pro-latest", 
-    model: genAI.getGenerativeModel({ model: "gemini-1.5-pro-latest" }),
+    name: "gemini-2.0-flash", 
+    model: genAI.getGenerativeModel({ model: "gemini-2.0-flash" }),
     priority: 3
   }
 ];

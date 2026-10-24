@@ -4,6 +4,7 @@ import axios from "axios";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState, useContext } from "react";
 import toast from "react-hot-toast";
+import { SERVER_URL } from "../utils/apiConfig";
 
 const UserContext = React.createContext();
 
@@ -11,7 +12,7 @@ const UserContext = React.createContext();
 axios.defaults.withCredentials = true;
 
 export const UserContextProvider = ({ children }) => {
-  const serverUrl = "https://snippet-master-harsh810.onrender.com";
+  const serverUrl = SERVER_URL;
 
   const router = useRouter();
 

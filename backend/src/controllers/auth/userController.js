@@ -351,7 +351,7 @@ export const verifyEmail = asyncHandler(async (req, res) => {
   const send_to = user.email;
   const reply_to = "noreply@gmail.com";
   const template = "emailVerification";
-  const send_from = process.env.USER_EMAIL;
+  const send_from = process.env.USER_EMAIL || process.env.EMAIL_USER;
   const name = user.name;
   const url = verificationLink;
 
@@ -445,7 +445,7 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   // send email to user
   const subject = "Password Reset - AuthKit";
   const send_to = user.email;
-  const send_from = process.env.USER_EMAIL;
+  const send_from = process.env.USER_EMAIL || process.env.EMAIL_USER;
   const reply_to = "noreply@noreply.com";
   const template = "forgotPassword";
   const name = user.name;

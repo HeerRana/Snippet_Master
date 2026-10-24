@@ -18,8 +18,11 @@ const sendEmail = async (
   name,
   link
 ) => {
+  const emailUser = process.env.USER_EMAIL || process.env.EMAIL_USER;
+  const emailPass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
+
   // Check if email credentials are configured
-  if (!process.env.USER_EMAIL || !process.env.EMAIL_PASS) {
+  if (!emailUser || !emailPass) {
     console.log("Email credentials not configured");
     throw new Error("Email service not configured");
   }
@@ -30,8 +33,8 @@ const sendEmail = async (
     port: 587,
     secure: false,
     auth: {
-      user: process.env.USER_EMAIL, //Your Outlook email
-      pass: process.env.EMAIL_PASS, //Your Outlook password
+      user: emailUser, //Your Outlook email
+      pass: emailPass, //Your Outlook password
     },
   });
 

@@ -4,6 +4,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { API_URL } from "@/utils/apiConfig";
 
 interface AIDocumentationProps {
   code: string;
@@ -28,7 +29,7 @@ const AIDocumentation: React.FC<AIDocumentationProps> = ({ code, language }) => 
     setLoading(true);
     try {
       const response = await axios.post(
-        "https://snippet-master-harsh810.onrender.com/api/v1/generate-documentation",
+        `${API_URL}/generate-documentation`,
         {
           code,
           language,
