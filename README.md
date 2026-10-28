@@ -138,7 +138,7 @@ npm run dev
 
 ## 🙌 Credits
 
-Built by [HeerRana](https://github.com/HeerRana/Portfolio) – A comprehensive code snippet management solution for modern developers.
+Built by [HeerRana](https://portfolio-seven-rho-uo9ad4xd3j.vercel.app/) – A comprehensive code snippet management solution for modern developers.
 
 ---
 
