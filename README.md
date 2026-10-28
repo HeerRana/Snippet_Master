@@ -138,7 +138,7 @@ npm run dev
 
 ## 🙌 Credits
 
-Built by [Harsh810](https://harsh810.vercel.app) – A comprehensive code snippet management solution for modern developers.
+Built by [HeerRana](https://github.com/HeerRana/Portfolio) – A comprehensive code snippet management solution for modern developers.
 
 ---
 
@@ -175,7 +175,7 @@ By using Snippet Master, you agree to our terms of service and privacy policy. Y
 
 ## ⚠️ Intellectual Property Notice
 
-The source code and features of this project are the intellectual property of Harsh810. Copying, modifying, or reusing any part of this code or its features is strictly prohibited.
+The source code and features of this project are the intellectual property of HeerRana. Copying, modifying, or reusing any part of this code or its features is strictly prohibited.
 
 ---
 

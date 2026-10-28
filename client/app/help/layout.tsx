@@ -10,7 +10,7 @@ function layout({ children }: Props) {
       {children}
       <footer className="mt-6 py-12 flex justify-center items-center">
         <p className="text-center">
-          &copy; 2024 <a href="https://harsh810.vercel.app" target="_blank" rel="noopener noreferrer" className="text-[#7263F3] hover:text-[#6FCF97] transition-colors">Harsh810</a>. All rights reserved.
+          &copy; 2024 <a href="https://github.com/HeerRana/Portfolio" target="_blank" rel="noopener noreferrer" className="text-[#7263F3] hover:text-[#6FCF97] transition-colors">HeerRana</a>. All rights reserved.
         </p>
       </footer>
     </main>

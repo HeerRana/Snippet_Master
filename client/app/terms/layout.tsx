@@ -12,12 +12,12 @@ function layout({ children }: Props) {
         <p className="text-center">
           &copy; {new Date().getFullYear()}{" "}
           <a 
-            href="https://harsh810.vercel.app" 
+            href="https://github.com/HeerRana/Portfolio" 
             target="_blank" 
             rel="noopener noreferrer"
             className="text-[#7263F3] hover:text-[#6FCF97] transition-colors"
           >
-            Harsh810
+            HeerRana
           </a>
           . All rights reserved.
         </p>
