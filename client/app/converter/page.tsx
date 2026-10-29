@@ -3,10 +3,12 @@ import React, { useState } from "react";
 import { FaExchangeAlt, FaCopy, FaDownload } from "react-icons/fa";
 import toast from "react-hot-toast";
 import SyntaxHighlighter from "react-syntax-highlighter";
-import { vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { vs, vs2015 } from "react-syntax-highlighter/dist/esm/styles/hljs";
+import { useTheme } from "@/context/themeContext";
 import { API_URL } from "@/utils/apiConfig";
 
 const CodeConverter = () => {
+  const { theme } = useTheme();
   const [sourceCode, setSourceCode] = useState("");
   const [convertedCode, setConvertedCode] = useState("");
   const [sourceLanguage, setSourceLanguage] = useState("javascript");
@@ -197,11 +199,11 @@ const CodeConverter = () => {
                 <div className="relative">
                   <SyntaxHighlighter
                     language={targetLanguage}
-                    style={vs2015}
+                    style={theme === "light" ? vs : vs2015}
                     customStyle={{
                       height: "320px",
                       fontSize: "14px",
-                      background: "#1a1a1a",
+                      background: theme === "light" ? "#f8f9fc" : "#1a1a1a",
                       borderRadius: "8px",
                     }}
                   >

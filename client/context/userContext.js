@@ -24,6 +24,8 @@ export const UserContextProvider = ({ children }) => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  // set after the password step when the account has 2-step verification on
+  const [otpChallenge, setOtpChallenge] = useState(null);
 
   // register user
   const registerUser = async (e) => {
@@ -72,6 +74,13 @@ export const UserContextProvider = ({ children }) => {
         }
       );
 
+      // 2-step verification: wait for the emailed code
+      if (res.data?.twoFactorRequired) {
+        setOtpChallenge(res.data.challengeToken);
+        toast.success("We emailed you a verification code");
+        return;
+      }
+
       toast.success("User logged in successfully");
 
       // clear the form
@@ -88,6 +97,76 @@ export const UserContextProvider = ({ children }) => {
     } catch (error) {
       console.log("Error logging in user", error);
       toast.error(error.response.data.message);
+    }
+  };
+
+  // finish login by sending the emailed one-time code
+  const verifyLoginOtp = async (otp) => {
+    try {
+      await axios.post(
+        `${serverUrl}/api/v1/login/verify-otp`,
+        { challengeToken: otpChallenge, otp },
+        { withCredentials: true }
+      );
+      toast.success("User logged in successfully");
+      setOtpChallenge(null);
+      setUserState({ email: "", password: "" });
+      await getUser();
+      router.push("/");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Verification failed");
+      // an expired or exhausted challenge sends the user back to the password step
+      if (error.response?.status === 429 || /expired|log in again/i.test(error.response?.data?.message || "")) {
+        setOtpChallenge(null);
+      }
+    }
+  };
+
+  const resendLoginOtp = async () => {
+    try {
+      const res = await axios.post(`${serverUrl}/api/v1/login/resend-otp`, {
+        challengeToken: otpChallenge,
+      });
+      toast.success(res.data.message);
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not resend code");
+    }
+  };
+
+  // Google Identity Services gives us an ID token (credential), the server verifies it
+  const googleLogin = async (credential) => {
+    try {
+      await axios.post(
+        `${serverUrl}/api/v1/auth/google`,
+        { credential },
+        { withCredentials: true }
+      );
+      toast.success("Signed in with Google");
+      await getUser();
+      router.push("/");
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Google sign-in failed");
+    }
+  };
+
+  // turn email 2-step verification on or off
+  const setTwoFactor = async (enabled, password) => {
+    try {
+      const res = await axios.patch(
+        `${serverUrl}/api/v1/two-factor`,
+        { enabled, password },
+        { withCredentials: true }
+      );
+      setUser((prev) => ({ ...prev, twoFactorEnabled: res.data.twoFactorEnabled }));
+      toast.success(
+        res.data.twoFactorEnabled
+          ? "2-step verification enabled"
+          : "2-step verification disabled"
+      );
+      return true;
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Could not update setting");
+      return false;
     }
   };
 
@@ -396,6 +475,12 @@ export const UserContextProvider = ({ children }) => {
         userState,
         handlerUserInput,
         loginUser,
+        otpChallenge,
+        setOtpChallenge,
+        verifyLoginOtp,
+        resendLoginOtp,
+        googleLogin,
+        setTwoFactor,
         logoutUser,
         userLoginStatus,
         user,

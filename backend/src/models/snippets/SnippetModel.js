@@ -75,6 +75,17 @@ const SnippetSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+
+    // set when this snippet was created by forking another one
+    forkedFrom: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Snippet",
+      default: null,
+    },
+    forkCount: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );

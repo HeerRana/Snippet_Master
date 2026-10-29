@@ -37,7 +37,12 @@ function page({ params: { id } }: Props) {
             <h1 className="text-2xl font-bold text-white">{snippet.title}</h1>
             <ShareSnippet snippetId={snippet._id} snippetTitle={snippet.title} />
           </div>
-          <Snippet snippet={snippet} height="640px" />
+          <Snippet
+            snippet={snippet}
+            height="640px"
+            enableComments
+            onUpdated={(updated) => setSnippet(updated)}
+          />
           
           {/* AI Features Section */}
           <div className="space-y-6">

@@ -14,6 +14,7 @@ interface IUser {
   linkedin: string;
   publicEmail: string;
   role: string;
+  twoFactorEnabled?: boolean;
 }
 
 interface ISnippet {
@@ -26,6 +27,9 @@ interface ISnippet {
   likedBy: string[];
   user: IUser;
   createdAt: string;
+  forkedFrom?: { _id: string; title: string } | null;
+  forkCount?: number;
+  isPublic?: boolean;
 }
 
 export type { ISnippet, IUser, ITag };

@@ -11,7 +11,7 @@ import {
   home,
   users,
 } from "@/utils/Icons";
-import { FaExchangeAlt, FaRobot } from "react-icons/fa";
+import { FaExchangeAlt, FaRobot, FaGithub } from "react-icons/fa";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React from "react";
@@ -68,6 +68,12 @@ function Sidebar() {
       name: isSidebarOpen ? "My Snippets" : "",
       url: `${user ? "/snippets" : "/login"}`,
       icon: box,
+    },
+    {
+      id: 6,
+      name: isSidebarOpen ? "GitHub Gists" : "",
+      url: `${user ? "/gist" : "/login"}`,
+      icon: <FaGithub />,
     },
     {
       id: 1,

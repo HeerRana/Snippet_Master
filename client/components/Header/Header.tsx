@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useGlobalContext } from "@/context/globalContext";
 import SearchIcon from "@/public/Icons/SearchIcon";
 import { useRealTime } from "@/context/realTimeContext";
+import ThemeToggle from "../ThemeToggle";
 
 function Header() {
   const { user } = useUserContext();
@@ -45,6 +46,7 @@ function Header() {
 
       {!user._id ? (
         <div className="flex items-center gap-3">
+          <ThemeToggle />
           <button
             className="relative h-[42px] px-6 bg-transparent border-2 border-[#7263F3] text-[#7263F3] flex items-center justify-center gap-2 rounded-lg font-semibold hover:bg-[#7263F3] hover:text-white transition-all duration-300 ease-in-out group"
             onClick={() => router.push("/login")}
@@ -62,6 +64,7 @@ function Header() {
         </div>
       ) : (
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <button
             className="mr-4 h-[42px] px-4 flex items-center justify-center text-black bg-white rounded-lg font-semibold hover:bg-white/80 transition duration-200 ease-in-out"
             onClick={openModalForSnippet}

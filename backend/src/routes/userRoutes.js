@@ -1,7 +1,5 @@
 import express from "express";
 import multer from "multer";
-import cloudinary, { deleteOldProfileImage } from "../helpers/cloudinaryHelper.js";
-import { CloudinaryStorage } from "multer-storage-cloudinary";
 import {
   changePassword,
   forgotPassword,
@@ -15,6 +13,7 @@ import {
   verifyEmail,
   verifyUser,
   getUserById,
+  getProfilePhoto,
 } from "../controllers/auth/userController.js";
 import {
   adminMiddleware,
@@ -25,35 +24,22 @@ import {
   deleteUser,
   getAllUsers,
 } from "../controllers/auth/adminController.js";
+import {
+  verifyLoginOtp,
+  resendLoginOtp,
+  setTwoFactor,
+  googleLogin,
+} from "../controllers/auth/authExtrasController.js";
 
 const router = express.Router();
 
-// Cloudinary is already configured in cloudinaryHelper.js
-
-// Configure multer with Cloudinary storage
-let storage;
-try {
-  storage = new CloudinaryStorage({
-    cloudinary: cloudinary.v2,
-    params: {
-      folder: "snippy-profiles",
-      allowed_formats: ["jpg", "jpeg", "png", "gif", "webp"],
-      transformation: [
-        { width: 400, height: 400, crop: "fill", gravity: "face" },
-        { quality: "auto" },
-      ],
-    },
-  });
-  console.log("Cloudinary storage configured successfully");
-} catch (error) {
-  console.error("Error configuring Cloudinary storage:", error);
-  throw new Error("Failed to configure Cloudinary storage: " + error.message);
-}
+// Profile pictures are kept in memory and then saved to MongoDB by updateUser
+const storage = multer.memoryStorage();
 
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 5 * 1024 * 1024, // 5MB limit
+    fileSize: 2 * 1024 * 1024, // 2MB (the browser resizes pictures before upload)
   },
   fileFilter: (req, file, cb) => {
     console.log("Processing file:", file.originalname, "MIME type:", file.mimetype);
@@ -77,15 +63,6 @@ const handleUpload = (req, res, next) => {
     } else if (err) {
       console.error("Upload error:", err);
       
-      // Check for Cloudinary-specific errors
-      if (err.message && err.message.includes('cloudinary')) {
-        console.error("Cloudinary configuration error:", err);
-        return res.status(500).json({ 
-          message: "Image upload service error", 
-          error: "Failed to upload image. Please try again later."
-        });
-      }
-      
       return res.status(400).json({ 
         message: "File upload failed", 
         error: err.message 
@@ -97,12 +74,19 @@ const handleUpload = (req, res, next) => {
 
 router.post("/register", registerUser);
 router.post("/login", loginUser);
+router.post("/login/verify-otp", verifyLoginOtp);
+router.post("/login/resend-otp", resendLoginOtp);
+router.post("/auth/google", googleLogin);
+router.patch("/two-factor", protect, setTwoFactor);
 router.get("/logout", logoutUser);
 router.get("/user", protect, getUser);
 router.patch("/user", protect, handleUpload, updateUser);
 
 // get user by Id
 router.get("/user/:id", getUserById);
+
+// profile picture stored in MongoDB
+router.get("/user/:id/photo", getProfilePhoto);
 
 // admin route
 router.delete("/admin/users/:id", protect, adminMiddleware, deleteUser);

@@ -1,6 +1,7 @@
 "use client";
 import { useUserContext } from "@/context/userContext";
 import React from "react";
+import GoogleSignInButton from "../GoogleSignInButton";
 
 function RegisterForm() {
   const { registerUser, userState, handlerUserInput } = useUserContext();
@@ -88,6 +89,7 @@ function RegisterForm() {
             Register Now
           </button>
         </div>
+        <GoogleSignInButton />
       </div>
       <img src="/flurry.png" alt="" />
     </form>

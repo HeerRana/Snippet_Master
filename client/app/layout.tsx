@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import "./theme.css";
 import UserProvider from "@/providers/UserProvider";
 import { Toaster } from "react-hot-toast";
 import Header from "@/components/Header/Header";
@@ -8,6 +9,7 @@ import ContentProvider from "@/providers/ContentProvider";
 import NextTopLoader from "nextjs-toploader";
 import ModalProvider from "@/providers/ModalProvider";
 import { RealTimeProvider } from "@/context/realTimeContext";
+import { ThemeProvider, themeInitScript } from "@/context/themeContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,8 +24,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
         <link
           rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
@@ -36,6 +39,7 @@ export default function RootLayout({
         <Toaster position="top-center" />
         <NextTopLoader showSpinner={false} color="#7263F3" height={2} />
 
+        <ThemeProvider>
         <UserProvider>
           <RealTimeProvider>
             <ModalProvider />
@@ -45,6 +49,7 @@ export default function RootLayout({
             </div>
           </RealTimeProvider>
         </UserProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

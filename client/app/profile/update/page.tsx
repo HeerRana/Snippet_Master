@@ -5,6 +5,7 @@ import React from "react";
 import { FaGithub, FaLinkedin, FaEnvelope } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { API_URL } from "@/utils/apiConfig";
+import TwoFactorSettings from "@/components/auth/TwoFactorSettings";
 
 function page() {
   const { user, updateUser, changePassword, userState, handlerUserInput } =
@@ -23,15 +24,64 @@ function page() {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviewImage(e.target?.result as string);
+  // Crop to a centered square and shrink to 400x400 JPEG (~30-60KB) before upload,
+  // so the picture is small enough to store in MongoDB.
+  const resizeImage = (file: File): Promise<File> =>
+    new Promise((resolve, reject) => {
+      const img = new window.Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const size = 400;
+        const side = Math.min(img.width, img.height);
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          URL.revokeObjectURL(url);
+          return reject(new Error("Canvas not supported"));
+        }
+        ctx.drawImage(
+          img,
+          (img.width - side) / 2,
+          (img.height - side) / 2,
+          side,
+          side,
+          0,
+          0,
+          size,
+          size
+        );
+        URL.revokeObjectURL(url);
+        canvas.toBlob(
+          (blob) =>
+            blob
+              ? resolve(new File([blob], "profile.jpg", { type: "image/jpeg" }))
+              : reject(new Error("Could not process image")),
+          "image/jpeg",
+          0.85
+        );
       };
-      reader.readAsDataURL(file);
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Please choose a valid image"));
+      };
+      img.src = url;
+    });
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const resized = await resizeImage(file);
+      setSelectedImage(resized);
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        setPreviewImage(ev.target?.result as string);
+      };
+      reader.readAsDataURL(resized);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Could not read image");
     }
   };
 
@@ -131,7 +181,7 @@ function page() {
             </label>
             <div className="flex-1">
               <p className="text-gray-400 text-sm">Click on the image to upload a new profile picture</p>
-              <p className="text-gray-500 text-xs mt-1">Supports JPG, PNG, GIF up to 5MB</p>
+              <p className="text-gray-500 text-xs mt-1">Any JPG, PNG or GIF. It is resized automatically.</p>
             </div>
             <input 
               id="file-upload" 
@@ -309,6 +359,7 @@ function page() {
           </button>
         </div>
       </form>
+      <TwoFactorSettings />
     </div>
   </main>
   );

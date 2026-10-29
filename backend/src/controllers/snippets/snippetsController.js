@@ -1,6 +1,7 @@
 import asyncHandler from "express-async-handler";
 import mongoose from "mongoose";
 import Snippet from "../../models/snippets/SnippetModel.js";
+import { saveVersion, contentChanged } from "../../helpers/versionHelper.js";
 
 export const createSnippet = asyncHandler(async (req, res) => {
   try {
@@ -79,7 +80,7 @@ export const createSnippet = asyncHandler(async (req, res) => {
     // Populate user and tags for real-time broadcast
     const populatedSnippet = await Snippet.findById(snippet._id)
       .populate("tags", "name")
-      .populate("user", "_id name photo");
+      .populate("user", "_id name photo").populate("forkedFrom", "_id title");
 
     // Emit real-time event for new snippet
     const io = req.app.get("io");
@@ -127,7 +128,7 @@ export const getPublicSnippets = asyncHandler(async (req, res) => {
 
     const snippets = await Snippet.find(query)
       .populate("tags", "name")
-      .populate("user", "_id name photo")
+      .populate("user", "_id name photo").populate("forkedFrom", "_id title")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -179,7 +180,7 @@ export const getUserSnippets = asyncHandler(async (req, res) => {
 
     const snippets = await Snippet.find(query)
       .populate("tags", "name")
-      .populate("user", "_id name photo")
+      .populate("user", "_id name photo").populate("forkedFrom", "_id title")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -211,7 +212,7 @@ export const getUserSnippet = asyncHandler(async (req, res) => {
 
     const snippet = await Snippet.findOne({ _id: snippetId, user: userId })
       .populate("tags", "name")
-      .populate("user", "_id name photo");
+      .populate("user", "_id name photo").populate("forkedFrom", "_id title");
 
     return res.status(200).json(snippet);
   } catch (error) {
@@ -226,7 +227,7 @@ export const getPublicSnippet = asyncHandler(async (req, res) => {
 
     const snippet = await Snippet.findOne({ _id: snippetId, isPublic: true })
       .populate("tags", "name")
-      .populate("user", "_id name photo");
+      .populate("user", "_id name photo").populate("forkedFrom", "_id title");
 
     return res.status(200).json(snippet);
   } catch (error) {
@@ -251,6 +252,11 @@ export const updateSnippet = asyncHandler(async (req, res) => {
       return res.status(404).json({ message: "Snippet not found" });
     }
 
+    // keep the previous content in version history before overwriting it
+    if (contentChanged(snippet, { title, description, code, language })) {
+      await saveVersion(snippet, userId, "Edited");
+    }
+
     snippet.title = title || snippet.title;
     snippet.description = description || snippet.description;
     snippet.code = code || snippet.code;
@@ -263,7 +269,7 @@ export const updateSnippet = asyncHandler(async (req, res) => {
     // Populate user and tags for response
     const updatedSnippet = await Snippet.findById(snippet._id)
       .populate("tags", "name")
-      .populate("user", "_id name photo");
+      .populate("user", "_id name photo").populate("forkedFrom", "_id title");
 
     // Emit real-time event for snippet update if it's public
     const io = req.app.get("io");
@@ -314,7 +320,7 @@ export const likeSnippet = asyncHandler(async (req, res) => {
     const snippetId = req.params.id;
     const userId = req.user._id;
 
-    let snippet = await Snippet.findById(snippetId).populate("user", "_id name photo");
+    let snippet = await Snippet.findById(snippetId).populate("user", "_id name photo").populate("forkedFrom", "_id title");
 
     if (!snippet) {
       return res.status(404).json({ message: "Snippet not found" });
@@ -384,7 +390,7 @@ export const getLikedSnippets = asyncHandler(async (req, res) => {
     // fetch the paginated liked snippets
     const snippets = await Snippet.find(query)
       .populate("tags", "name")
-      .populate("user", "_id name photo")
+      .populate("user", "_id name photo").populate("forkedFrom", "_id title")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -486,7 +492,7 @@ export const getPopularSnippets = asyncHandler(async (req, res) => {
     // fetch popular snippets
     const popularSnippets = await Snippet.find(query)
       .populate("tags", "name")
-      .populate("user", "_id name photo")
+      .populate("user", "_id name photo").populate("forkedFrom", "_id title")
       .sort({ likes: -1 })
       .skip(skip)
       .limit(limit * 10); // get 10 times the limit to get a good sample;

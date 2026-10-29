@@ -7,6 +7,8 @@ import fs from "node:fs";
 import errorHandler from "./src/helpers/errorhandler.js";
 import { createServer } from "http";
 import { Server } from "socket.io";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 
 dotenv.config();
 
@@ -55,6 +57,45 @@ const corsOptions = {
 const io = new Server(server, {
   cors: corsOptions,
 });
+
+// behind Render/Vercel proxies: needed so rate limiting sees the real client IP
+app.set("trust proxy", 1);
+
+// security headers (API is called cross-origin from the Vercel frontend)
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: false,
+  })
+);
+
+// rate limiting: strict for credential endpoints, relaxed for the rest
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many attempts, please try again in a few minutes" },
+});
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: "Too many requests, please slow down" },
+});
+app.use(
+  [
+    "/api/v1/login",
+    "/api/v1/register",
+    "/api/v1/auth",
+    "/api/v1/forgot-password",
+    "/api/v1/reset-password",
+    "/api/v1/shared",
+  ],
+  authLimiter
+);
+app.use("/api", apiLimiter);
 
 // middleware
 app.use(cors(corsOptions));

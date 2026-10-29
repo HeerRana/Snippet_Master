@@ -7,7 +7,9 @@ import Token from "../../models/auth/Token.js";
 import crypto from "node:crypto";
 import hashToken from "../../helpers/hashToken.js";
 import sendEmail from "../../helpers/sendEmail.js";
-import { deleteOldProfileImage } from "../../helpers/cloudinaryHelper.js";
+import { startOtpChallenge } from "./authExtrasController.js";
+import ProfileImage from "../../models/auth/ProfileImageModel.js";
+import mongoose from "mongoose";
 
 export const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password } = req.body;
@@ -89,12 +91,22 @@ export const loginUser = asyncHandler(async (req, res) => {
     return res.status(404).json({ message: "User not found, sign up!" });
   }
 
+  // accounts created with Google have no password
+  if (!userExists.password) {
+    return res.status(400).json({ message: "This account uses Google sign-in. Please continue with Google." });
+  }
+
   // check id the password match the hashed password in the database
   const isMatch = await bcrypt.compare(password, userExists.password);
 
   if (!isMatch) {
     // 400 Bad Request
     return res.status(400).json({ message: "Invalid credentials" });
+  }
+
+  // 2-step verification: email a one-time code before creating a session
+  if (userExists.twoFactorEnabled) {
+    return startOtpChallenge(userExists, res);
   }
 
   // generate token with user id
@@ -143,7 +155,7 @@ export const logoutUser = asyncHandler(async (req, res) => {
 // get user
 export const getUser = asyncHandler(async (req, res) => {
   // get user details from the token ----> exclude password
-  const user = await User.findById(req.user._id).select("-password");
+  const user = await User.findById(req.user._id).select("-password -loginOtp");
 
   if (user) {
     res.status(200).json(user);
@@ -156,7 +168,7 @@ export const getUser = asyncHandler(async (req, res) => {
 // get user by Id
 export const getUserById = asyncHandler(async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select("-password, -email");
+    const user = await User.findById(req.params.id).select("-password -loginOtp -googleId");
 
     if (user) {
       res.status(200).json(user);
@@ -167,6 +179,20 @@ export const getUserById = asyncHandler(async (req, res) => {
     console.log("Error getting user by Id", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
+});
+
+// serve a profile picture stored in MongoDB
+export const getProfilePhoto = asyncHandler(async (req, res) => {
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(404).end();
+  }
+  const image = await ProfileImage.findOne({ user: req.params.id });
+  if (!image) return res.status(404).end();
+
+  res.set("Content-Type", image.contentType);
+  // the URL carries ?v=<timestamp>, so it is safe to cache for a long time
+  res.set("Cache-Control", "public, max-age=31536000, immutable");
+  res.send(image.data);
 });
 
 // update user
@@ -208,34 +234,15 @@ export const updateUser = asyncHandler(async (req, res) => {
     }
 
     // Handle file upload for photo
-    if (req.file) {
-      try {
-        console.log("Processing file upload:", req.file.originalname);
-        console.log("File details:", {
-          fieldname: req.file.fieldname,
-          mimetype: req.file.mimetype,
-          size: req.file.size,
-          path: req.file.path
-        });
-        
-        // Delete old profile image if it exists
-        if (user.photo && !user.photo.includes('avatars.githubusercontent.com')) {
-          console.log("Deleting old profile image:", user.photo);
-          await deleteOldProfileImage(user.photo);
-        }
-        
-        // Cloudinary upload successful - use the secure URL
-        user.photo = req.file.path;
-        console.log("Profile photo uploaded to Cloudinary:", req.file.path);
-      } catch (error) {
-        console.error("Error uploading to Cloudinary:", error);
-        console.error("Cloudinary error details:", {
-          name: error.name,
-          message: error.message,
-          stack: error.stack
-        });
-        return res.status(500).json({ message: "Failed to upload image: " + error.message });
-      }
+    if (req.file && req.file.buffer) {
+      // MongoDB storage (default): keep the bytes in their own collection and
+      // store only a small URL on the user, so snippet responses stay light
+      await ProfileImage.findOneAndUpdate(
+        { user: user._id },
+        { contentType: req.file.mimetype, data: req.file.buffer },
+        { upsert: true, new: true }
+      );
+      user.photo = `${req.protocol}://${req.get("host")}/api/v1/user/${user._id}/photo?v=${Date.now()}`;
     } else if (req.body.photo && req.body.photo !== user.photo && req.body.photo !== '') {
       // If photo URL is provided in body and it's different from current and not empty
       console.log("Updating photo URL:", req.body.photo);

@@ -31,9 +31,33 @@ const UserSchema = new mongoose.Schema(
       type: String,
     },
 
+    // not required for accounts created through Google sign-in
     password: {
       type: String,
-      required: [true, "Please add password!"],
+      required: [
+        function () {
+          return !this.googleId;
+        },
+        "Please add password!",
+      ],
+    },
+
+    googleId: {
+      type: String,
+      index: true,
+      sparse: true,
+    },
+
+    // email one-time-code verification at login (opt-in)
+    twoFactorEnabled: {
+      type: Boolean,
+      default: false,
+    },
+
+    loginOtp: {
+      hash: String,
+      expiresAt: Date,
+      attempts: { type: Number, default: 0 },
     },
 
     photo: {

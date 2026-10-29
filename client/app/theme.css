@@ -1,0 +1,122 @@
+/* ---------------------------------------------------------------------------
+   Light theme. The app is written against the dark palette in globals.css, so
+   the light theme remaps the same CSS variables and overrides the few
+   hard-coded utility colours (text-white, text-gray-*, bg-white ...).
+   Activated by <html data-theme="light">, see context/themeContext.tsx.
+   ------------------------------------------------------------------------- */
+html[data-theme="light"] {
+  color-scheme: light;
+  --color--bg-0: #0f172a;
+  --color--bg-1: #ffffff;
+  --color--bg-2: #ffffff;
+  --color--bg-3: #f3f4f8;
+  --color--bg-4: #f8f9fc;
+  --color--bg-5: #eceef5;
+  --color--green-dark: #1f2937;
+  --color--grey-0: #1f2937;
+  --color--grey-1: #374151;
+  --color--grey-2: #6b7280;
+  --color--grey-3: #d1d5db;
+  --color--grey-4: #e5e7eb;
+  --color--grey-5: #f3f4f6;
+  --color--rgba-0: rgba(15, 23, 42, 0.3);
+  --color--rgba-1: rgba(15, 23, 42, 0.2);
+  --color--rgba-2: rgba(15, 23, 42, 0.12);
+  --color--rgba-3: rgba(15, 23, 42, 0.07);
+  --color--rgba-4: rgba(15, 23, 42, 0.03);
+}
+
+html[data-theme="light"] .text-white,
+html[data-theme="light"] .hover\:text-white:hover {
+  color: #111827;
+}
+html[data-theme="light"] .text-gray-100,
+html[data-theme="light"] .text-gray-200,
+html[data-theme="light"] .text-gray-300 {
+  color: #1f2937;
+}
+html[data-theme="light"] .text-gray-400,
+html[data-theme="light"] .text-\[\#999\] {
+  color: #4b5563;
+}
+html[data-theme="light"] .text-gray-500 {
+  color: #6b7280;
+}
+html[data-theme="light"] .placeholder-gray-400::placeholder {
+  color: #9ca3af;
+}
+html[data-theme="light"] .bg-white {
+  background-color: #111827;
+  color: #ffffff;
+}
+html[data-theme="light"] .bg-gray-800,
+html[data-theme="light"] .bg-gray-600 {
+  background-color: #4b5563;
+}
+html[data-theme="light"] .u-shadow-1,
+html[data-theme="light"] .u-shadow-2 {
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+}
+
+/* text on coloured buttons / gradients / dark chips must stay white
+   (listed last so they win over the overrides above) */
+html[data-theme="light"] [class*="bg-[#"].text-white,
+html[data-theme="light"] [class*="bg-[#"] .text-white,
+html[data-theme="light"] [class*="from-["].text-white,
+html[data-theme="light"] [class*="from-["] .text-white,
+html[data-theme="light"] .bg-gray-600.text-white,
+html[data-theme="light"] .bg-gray-800 .text-white,
+html[data-theme="light"] .bg-gray-800 .text-gray-300,
+html[data-theme="light"] .bg-black .text-white {
+  color: #ffffff;
+}
+
+/* QR code card keeps a white background in both themes */
+html[data-theme="light"] .qr-card {
+  background-color: #ffffff;
+}
+
+/* theme toggle button */
+.theme-toggle {
+  width: 42px;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  background: var(--color--rgba-3);
+  color: #f5b301;
+  font-size: 1.1rem;
+  transition: transform 0.2s ease;
+}
+.theme-toggle:hover {
+  transform: rotate(15deg) scale(1.08);
+}
+html[data-theme="light"] .theme-toggle {
+  color: #4f46e5;
+}
+
+/* smooth switching */
+body,
+.bg-1,
+.bg-2,
+.bg-3,
+.bg-4 {
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* base elements: low specificity so utility classes (text-red-500 ...) still win */
+:where(html[data-theme="light"]) h1,
+:where(html[data-theme="light"]) h2,
+:where(html[data-theme="light"]) h3,
+:where(html[data-theme="light"]) h4,
+:where(html[data-theme="light"]) p {
+  color: #1f2937;
+}
+html[data-theme="light"] body {
+  color: #111827;
+}
+
+html[data-theme="light"] .hover\:text-white[class*="hover:bg-["]:hover {
+  color: #ffffff;
+}

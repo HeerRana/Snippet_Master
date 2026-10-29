@@ -33,6 +33,21 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 });
 
+// like protect, but anonymous visitors are allowed through (req.user stays unset)
+export const optionalAuth = asyncHandler(async (req, res, next) => {
+  try {
+    const token = req.cookies.token;
+    if (token) {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET);
+      const user = await User.findById(decoded.id).select("-password");
+      if (user) req.user = user;
+    }
+  } catch (error) {
+    // invalid token -> treat as anonymous
+  }
+  next();
+});
+
 // admin middleware
 export const adminMiddleware = asyncHandler(async (req, res, next) => {
   console.log("adminMiddleware", req.user);

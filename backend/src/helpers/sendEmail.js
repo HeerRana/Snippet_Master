@@ -16,7 +16,8 @@ const sendEmail = async (
   reply_to,
   template,
   name,
-  link
+  link,
+  extra = {}
 ) => {
   const emailUser = process.env.USER_EMAIL || process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
@@ -59,6 +60,7 @@ const sendEmail = async (
     context: {
       name: name,
       link: link,
+      ...extra,
     },
   };
 

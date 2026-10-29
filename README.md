@@ -41,7 +41,7 @@
   - **JWT-Based Authentication:** Secure user registration, login, and session management.
   - **Email Verification:** Robust email verification system for account security.
   - **Password Reset:** Secure password recovery via email with token-based validation.
-  - **Profile Management:** Update personal information, bio, social links, and profile pictures with Cloudinary integration.
+  - **Profile Management:** Update personal information, bio, social links, and profile pictures (stored in MongoDB).
 
 - **Modern Dashboard & Analytics**
   - **Personal Dashboard:** Overview of your snippets, favorites, and community activity.
@@ -49,10 +49,25 @@
   - **Dark Mode Support:** Beautiful dark theme for comfortable coding sessions.
   - **Accessibility Features:** WCAG compliant design for inclusive user experience.
 
-- **File Management & Cloud Integration**
-  - **Cloudinary Integration:** Secure file uploads for profile pictures and media content.
-  - **Image Optimization:** Automatic image compression and optimization for better performance.
-  - **CDN Delivery:** Fast, global content delivery for uploaded assets.
+- **Profile Pictures**
+  - **MongoDB Storage:** Pictures are stored in the database, no external image service needed.
+  - **Automatic Resizing:** Photos are cropped and compressed in the browser before upload.
+
+---
+
+- **Developer Workflow Features** (see [NEW_FEATURES_SETUP.md](NEW_FEATURES_SETUP.md))
+  - **Version History + Rollback:** Every edit is saved; compare any version to the current code with a line diff and restore it.
+  - **Fork Snippets:** Copy a public snippet to your account with a "forked from" link.
+  - **Inline Line Comments:** Click a line of code to leave a review-style comment.
+  - **Private Share Links:** Time-limited and optionally password-protected links.
+  - **Embeddable Widget:** Drop a snippet into a blog or docs with an iframe.
+  - **GitHub Gist Import / Export:** Move snippets to and from GitHub Gists via GitHub's REST API.
+  - **Light / Dark Theme:** One-click toggle, remembered per browser.
+
+- **Stronger Authentication**
+  - **Google Sign-In (OAuth 2.0 / OpenID Connect):** Register and log in with a Google account.
+  - **2-Step Login Verification:** Optional emailed 6-digit code after the password.
+  - **Hardening:** helmet security headers and rate limiting on credential endpoints.
 
 ---
 
@@ -63,7 +78,6 @@
 - **Real-Time:** Socket.IO for live updates and collaboration
 - **AI Integration:** Google Generative AI for code analysis and documentation
 - **Authentication:** JWT tokens with bcrypt password hashing
-- **File Storage:** Cloudinary for image uploads and management
 - **Email Services:** Nodemailer with Handlebars templates
 - **UI Components:** Radix UI, Lucide React icons, Framer Motion
 - **Code Highlighting:** React Syntax Highlighter with 50+ language support
@@ -82,9 +96,6 @@ Create a `.env` file in the backend directory and add:
 ```env
 MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret_key
-CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
-CLOUDINARY_API_KEY=your_cloudinary_api_key
-CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 GOOGLE_AI_API_KEY=your_google_ai_api_key
 EMAIL_USER=your_email_address
 EMAIL_PASS=your_email_password
