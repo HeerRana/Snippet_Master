@@ -51,6 +51,10 @@ const sendOtp = async (user) => {
   };
   await user.save();
 
+  console.log(`\n========================================`);
+  console.log(`[2FA OTP CODE] for ${user.email}: ${code}`);
+  console.log(`========================================\n`);
+
   const senderEmail = process.env.USER_EMAIL || process.env.EMAIL_USER;
 
   await sendEmail(
@@ -70,9 +74,15 @@ export const startOtpChallenge = async (user, res) => {
   try {
     await sendOtp(user);
   } catch (error) {
-    console.log("Error sending login code:", error.message);
+    console.error("Error sending login code:", error.message);
+    const detail = error.message.includes("not configured")
+      ? "Email service is not configured on the server. Please set USER_EMAIL and EMAIL_PASS in Render."
+      : error.code === "EAUTH"
+      ? "Email authentication failed. If using Gmail, make sure to use an App Password (16 characters, not account password)."
+      : "Could not send verification code: " + (error.message || "Please check email settings");
+
     return res.status(500).json({
-      message: "Could not send the verification code, please try again",
+      message: detail,
     });
   }
 
@@ -168,6 +178,18 @@ export const setTwoFactor = asyncHandler(async (req, res) => {
   if (user.password) {
     const ok = req.body.password && (await bcrypt.compare(req.body.password, user.password));
     if (!ok) return res.status(400).json({ message: "Incorrect password" });
+  }
+
+  const hasEmailService = Boolean(
+    (process.env.USER_EMAIL || process.env.EMAIL_USER) &&
+    (process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD)
+  );
+
+  if (enabled && !hasEmailService) {
+    return res.status(400).json({
+      message:
+        "Cannot enable 2-step verification: email credentials (USER_EMAIL and EMAIL_PASS) are not configured on the server yet.",
+    });
   }
 
   user.twoFactorEnabled = enabled;

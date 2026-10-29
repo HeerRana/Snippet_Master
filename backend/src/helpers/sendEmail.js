@@ -28,6 +28,7 @@ const sendEmail = async (
     throw new Error("Email service not configured");
   }
 
+  const cleanPass = emailPass.replace(/\s+/g, "");
   const isGmail =
     emailUser.toLowerCase().includes("@gmail.com") ||
     process.env.EMAIL_SERVICE?.toLowerCase() === "gmail";
@@ -38,8 +39,14 @@ const sendEmail = async (
           service: "gmail",
           auth: {
             user: emailUser,
-            pass: emailPass,
+            pass: cleanPass,
           },
+          tls: {
+            rejectUnauthorized: false,
+          },
+          connectionTimeout: 8000,
+          greetingTimeout: 8000,
+          socketTimeout: 10000,
         }
       : {
           service: process.env.EMAIL_SERVICE || "Outlook365",
@@ -48,8 +55,14 @@ const sendEmail = async (
           secure: process.env.EMAIL_SECURE === "true",
           auth: {
             user: emailUser,
-            pass: emailPass,
+            pass: cleanPass,
           },
+          tls: {
+            rejectUnauthorized: false,
+          },
+          connectionTimeout: 8000,
+          greetingTimeout: 8000,
+          socketTimeout: 10000,
         }
   );
 
