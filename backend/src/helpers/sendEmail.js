@@ -24,20 +24,34 @@ const sendEmail = async (
 
   // Check if email credentials are configured
   if (!emailUser || !emailPass) {
-    console.log("Email credentials not configured");
+    console.error("Email credentials not configured: USER_EMAIL or EMAIL_PASS missing");
     throw new Error("Email service not configured");
   }
 
-  const transporter = nodeMailer.createTransport({
-    service: "Outlook365",
-    host: "smtp.office365.com",
-    port: 587,
-    secure: false,
-    auth: {
-      user: emailUser, //Your Outlook email
-      pass: emailPass, //Your Outlook password
-    },
-  });
+  const isGmail =
+    emailUser.toLowerCase().includes("@gmail.com") ||
+    process.env.EMAIL_SERVICE?.toLowerCase() === "gmail";
+
+  const transporter = nodeMailer.createTransport(
+    isGmail
+      ? {
+          service: "gmail",
+          auth: {
+            user: emailUser,
+            pass: emailPass,
+          },
+        }
+      : {
+          service: process.env.EMAIL_SERVICE || "Outlook365",
+          host: process.env.EMAIL_HOST || "smtp.office365.com",
+          port: Number(process.env.EMAIL_PORT) || 587,
+          secure: process.env.EMAIL_SECURE === "true",
+          auth: {
+            user: emailUser,
+            pass: emailPass,
+          },
+        }
+  );
 
   const handlebarsOptions = {
     viewEngine: {
@@ -52,9 +66,9 @@ const sendEmail = async (
   transporter.use("compile", hbs(handlebarsOptions));
 
   const mailOptions = {
-    from: send_from,
+    from: send_from || emailUser,
     to: send_to,
-    replyTo: reply_to,
+    replyTo: reply_to || emailUser,
     subject: subject,
     template: template,
     context: {

@@ -51,11 +51,13 @@ const sendOtp = async (user) => {
   };
   await user.save();
 
+  const senderEmail = process.env.USER_EMAIL || process.env.EMAIL_USER;
+
   await sendEmail(
     "Your Snippet Master login code",
     user.email,
-    process.env.USER_EMAIL || process.env.EMAIL_USER,
-    "noreply@gmail.com",
+    senderEmail,
+    senderEmail || "noreply@snippetmaster.com",
     "loginOtp",
     user.name,
     "",
