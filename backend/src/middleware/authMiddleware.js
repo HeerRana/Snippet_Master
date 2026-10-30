@@ -1,9 +1,31 @@
 import asyncHandler from "express-async-handler";
 import jwt from "jsonwebtoken";
 import User from "../models/auth/UserModel.js";
+import ApiToken from "../models/auth/ApiTokenModel.js";
+import { hashToken } from "../controllers/auth/apiTokenController.js";
+
+// "Authorization: Bearer snp_..." (VS Code extension)
+const userFromBearer = async (req) => {
+  const header = req.headers.authorization || "";
+  if (!header.startsWith("Bearer snp_")) return null;
+
+  const record = await ApiToken.findOne({
+    tokenHash: hashToken(header.slice(7).trim()),
+  });
+  if (!record) return null;
+
+  ApiToken.updateOne({ _id: record._id }, { lastUsedAt: new Date() }).catch(() => {});
+  return User.findById(record.user).select("-password");
+};
 
 export const protect = asyncHandler(async (req, res, next) => {
   try {
+    const bearerUser = await userFromBearer(req);
+    if (bearerUser) {
+      req.user = bearerUser;
+      return next();
+    }
+
     // check if user is logged in
     const token = req.cookies.token;
 
@@ -36,6 +58,11 @@ export const protect = asyncHandler(async (req, res, next) => {
 // like protect, but anonymous visitors are allowed through (req.user stays unset)
 export const optionalAuth = asyncHandler(async (req, res, next) => {
   try {
+    const bearerUser = await userFromBearer(req);
+    if (bearerUser) {
+      req.user = bearerUser;
+      return next();
+    }
     const token = req.cookies.token;
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);

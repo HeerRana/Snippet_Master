@@ -4,22 +4,92 @@ import { useSnippetContext } from "@/context/snippetsContext";
 import useDetectOutside from "@/hooks/useDetectOutside";
 import { ITag } from "@/types/types";
 import { edit, plus } from "@/utils/Icons";
-import React, { act, useEffect, useRef, useState } from "react";
-import Button from "../Button/Button";
+import React, { useEffect, useRef, useState } from "react";
+import axios from "axios";
+import toast from "react-hot-toast";
+import { FaMagic, FaFolderOpen, FaFolder, FaTimes } from "react-icons/fa";
+import GlassSelect from "@/components/GlassSelect/GlassSelect";
+import { API_URL } from "@/utils/apiConfig";
+import { SUPPORTED_LANGUAGES, languageFromFilename } from "@/utils/languages";
+
+const DRAFT_KEY = "snippy-snippet-draft-v1";
+const MAX_FILE_BYTES = 300 * 1024;
+const MAX_EXTRA_TAGS = 5;
+
+interface Draft {
+  title: string;
+  description: string;
+  code: string;
+  language: string;
+  isPublic: boolean;
+  tagIds: string[];
+  extraTags: string[];
+  collectionIds: string[];
+  savedAt: number;
+}
+
+interface CollectionItem {
+  _id: string;
+  name: string;
+  count: number;
+}
+
+// browser storage can throw (private window, blocked site data): never let it break the form
+const readDraft = (): Draft | null => {
+  try {
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" ? parsed : null;
+  } catch {
+    return null;
+  }
+};
+const writeDraft = (draft: Draft) => {
+  try {
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+  } catch {
+    // ignore
+  }
+};
+const clearDraft = () => {
+  try {
+    localStorage.removeItem(DRAFT_KEY);
+  } catch {
+    // ignore
+  }
+};
+const isEmptyForm = (d: { title: string; description: string; code: string }) =>
+  !d.title.trim() && !d.description.trim() && !d.code.trim();
 
 function AddSnippetModal() {
   const { modalMode, closeModal, activeSnippet } = useGlobalContext();
-  const { createSnippet, tags, useTagColorMemo, updateSnippet } =
+  const { createSnippet, tags, getTags, useTagColorMemo, updateSnippet } =
     useSnippetContext();
   const ref = useRef<HTMLDivElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const isAdd = modalMode === "add-snippet";
 
   const [activeTags, setActiveTags] = useState([]) as any;
+  const [extraTags, setExtraTags] = useState<string[]>([]);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState("javascript");
   const [isPublic, setIsPublic] = useState(true);
+
+  const [dragging, setDragging] = useState(false);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  const [collections, setCollections] = useState<CollectionItem[]>([]);
+  const [selectedCollections, setSelectedCollections] = useState<string[]>([]);
+  const [newCollection, setNewCollection] = useState("");
+  const [newTag, setNewTag] = useState("");
+
+  const [draft, setDraft] = useState<Draft | null>(null);
 
   // use the hook to detect outside click
   useDetectOutside({
@@ -43,6 +113,55 @@ function AddSnippetModal() {
     }
   }, [modalMode, activeSnippet]);
 
+  // creating a snippet: offer a saved draft and load the user's collections
+  useEffect(() => {
+    if (!isAdd) return;
+    const saved = readDraft();
+    setDraft(saved && !isEmptyForm(saved) ? saved : null);
+
+    (async () => {
+      try {
+        const res = await axios.get(`${API_URL}/collections`, {
+          withCredentials: true,
+        });
+        setCollections(res.data.collections);
+      } catch (error) {
+        // collections are optional, the form works without them
+      }
+    })();
+  }, [isAdd]);
+
+  // autosave the draft shortly after every change (never saves an empty form,
+  // so closing or resetting the modal cannot wipe a draft)
+  useEffect(() => {
+    if (!isAdd || isEmptyForm({ title, description, code })) return;
+    const timer = setTimeout(() => {
+      writeDraft({
+        title,
+        description,
+        code,
+        language,
+        isPublic,
+        tagIds: activeTags.map((t: ITag) => t._id),
+        extraTags,
+        collectionIds: selectedCollections,
+        savedAt: Date.now(),
+      });
+      setDraft(null);
+    }, 600);
+    return () => clearTimeout(timer);
+  }, [
+    isAdd,
+    title,
+    description,
+    code,
+    language,
+    isPublic,
+    activeTags,
+    extraTags,
+    selectedCollections,
+  ]);
+
   const resetForm = () => {
     setTitle("");
     setDescription("");
@@ -50,31 +169,35 @@ function AddSnippetModal() {
     setLanguage("javascript");
     setIsPublic(true);
     setActiveTags([]);
+    setExtraTags([]);
+    setSelectedCollections([]);
+    setNewCollection("");
   };
 
-  const languages = [
-    "c",
-    "c#",
-    "c++",
-    "css",
-    "django",
-    "go",
-    "haskell",
-    "html",
-    "java",
-    "javascript",
-    "json",
-    "kotlin",
-    "lua",
-    "php",
-    "python",
-    "r",
-    "ruby",
-    "rust",
-    "sql",
-    "swift",
-    "typescript",
-  ];
+  const restoreDraft = () => {
+    if (!draft) return;
+    setTitle(draft.title || "");
+    setDescription(draft.description || "");
+    setCode(draft.code || "");
+    setLanguage(draft.language || "javascript");
+    setIsPublic(draft.isPublic !== false);
+    setActiveTags(
+      (draft.tagIds || [])
+        .map((id) => tags.find((t: ITag) => t._id === id))
+        .filter(Boolean)
+    );
+    setExtraTags(draft.extraTags || []);
+    setSelectedCollections(draft.collectionIds || []);
+    setDraft(null);
+    toast.success("Draft restored");
+  };
+
+  const discardDraft = () => {
+    clearDraft();
+    setDraft(null);
+  };
+
+  const languages = [...SUPPORTED_LANGUAGES] as string[];
 
   const handleTags = (tag: ITag) => {
     const isTagActive = activeTags.some((activeTag: { _id: string }) => {
@@ -94,9 +217,154 @@ function AddSnippetModal() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  // ---------- load a file (button or drag and drop) ----------
+  const loadFile = async (file: File) => {
+    if (file.size > MAX_FILE_BYTES) {
+      return toast.error("That file is too large (max 300 KB)");
+    }
+    const text = await file.text();
+    if (text.includes("\u0000")) {
+      return toast.error("That looks like a binary file, not code");
+    }
 
+    setCode(text);
+    const lang = languageFromFilename(file.name);
+    if (lang) setLanguage(lang);
+    if (!title.trim()) setTitle(file.name.replace(/\.[^.]+$/, ""));
+    toast.success(`Loaded ${file.name}`);
+  };
+
+  const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) loadFile(file);
+  };
+
+  // ---------- AI: fill empty fields from the code ----------
+  const suggest = async () => {
+    if (code.trim().length < 10) {
+      return toast.error("Paste some code first");
+    }
+    setAiBusy(true);
+    try {
+      const res = await axios.post(
+        `${API_URL}/suggest-snippet-details`,
+        { code, existingTags: tags.map((t: ITag) => t.name) },
+        { withCredentials: true }
+      );
+      const s = res.data;
+      const filled: string[] = [];
+
+      if (!title.trim() && s.title) {
+        setTitle(s.title);
+        filled.push("title");
+      }
+      if (!description.trim() && s.description) {
+        setDescription(s.description);
+        filled.push("description");
+      }
+
+      // tags: existing ones are selected, unknown ones become new tags
+      const byName = new Map<string, ITag>(
+        tags.map((t: ITag) => [t.name.toLowerCase(), t])
+      );
+      const matched: ITag[] = [];
+      const fresh: string[] = [];
+      for (const name of (s.tags || []) as string[]) {
+        const known = byName.get(name.toLowerCase());
+        if (known) matched.push(known);
+        else fresh.push(name);
+      }
+      if (matched.length) {
+        setActiveTags((prev: ITag[]) => [
+          ...prev,
+          ...matched.filter((m) => !prev.some((p) => p._id === m._id)),
+        ]);
+      }
+      if (fresh.length) {
+        setExtraTags((prev) =>
+          Array.from(new Set([...prev, ...fresh])).slice(0, MAX_EXTRA_TAGS)
+        );
+      }
+      if (matched.length || fresh.length) filled.push("tags");
+
+      toast.success(
+        filled.length
+          ? `Filled: ${filled.join(", ")}`
+          : "Your fields are already filled in"
+      );
+    } catch (error: any) {
+      toast.error(
+        error.response?.status === 404 && typeof error.response?.data !== "object"
+          ? "AI suggestions are not available on this server yet. Deploy the latest backend."
+          : error.response?.data?.message || "Could not get suggestions"
+      );
+    } finally {
+      setAiBusy(false);
+    }
+  };
+
+  // ---------- tags: type your own ----------
+  const addCustomTag = () => {
+    const name = newTag
+      .trim()
+      .replace(/^#/, "")
+      .replace(/\s+/g, " ")
+      .toLowerCase();
+
+    if (name.length < 2 || name.length > 30) {
+      return toast.error("A tag needs 2 to 30 characters");
+    }
+
+    // an existing tag with that name is simply selected
+    const existing = tags.find((t: ITag) => t.name.toLowerCase() === name);
+    if (existing) {
+      if (!activeTags.some((a: ITag) => a._id === existing._id)) {
+        setActiveTags([...activeTags, existing]);
+      }
+    } else if (!extraTags.includes(name)) {
+      if (extraTags.length >= MAX_EXTRA_TAGS) {
+        return toast.error(`You can add up to ${MAX_EXTRA_TAGS} new tags`);
+      }
+      setExtraTags([...extraTags, name]);
+    }
+    setNewTag("");
+  };
+
+  // ---------- collections ----------
+  const toggleCollection = (id: string) =>
+    setSelectedCollections((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+
+  const createCollection = async () => {
+    const name = newCollection.trim();
+    if (name.length < 2) return;
+    try {
+      const res = await axios.post(
+        `${API_URL}/collections`,
+        { name },
+        { withCredentials: true }
+      );
+      setCollections((prev) => [
+        { _id: res.data._id, name: res.data.name, count: 0 },
+        ...prev,
+      ]);
+      setSelectedCollections((prev) => [...prev, res.data._id]);
+      setNewCollection("");
+    } catch (error: any) {
+      toast.error(
+        error.response?.data?.message || "Could not create the collection"
+      );
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (submitting) return;
+
+    const tagIds = activeTags.map((tag: ITag) => tag._id);
     const snippetData = {
       _id: activeSnippet?._id,
       title,
@@ -104,18 +372,44 @@ function AddSnippetModal() {
       code,
       language,
       isPublic,
-      tags: activeTags.length > 0 ? activeTags.map((tag: ITag) => tag._id) : [],
+      // new (AI suggested) tags go by name, the server creates them
+      tags: [...tagIds, ...extraTags],
     };
 
     if (modalMode === "edit-snippet") {
-      updateSnippet(snippetData);
+      const saved = updateSnippet(snippetData);
 
       closeModal();
-    } else if (modalMode === "add-snippet") {
-      const res = createSnippet(snippetData);
 
-      if (res._id) {
-        closeModal();
+      // new tags are created by the server, refresh the tag list once it has finished
+      await saved;
+      if (extraTags.length) getTags();
+    } else if (isAdd) {
+      setSubmitting(true);
+      const created = await createSnippet(snippetData);
+      setSubmitting(false);
+
+      if (created?._id) {
+        clearDraft();
+        if (extraTags.length) getTags();
+
+        if (selectedCollections.length) {
+          const results = await Promise.allSettled(
+            selectedCollections.map((id) =>
+              axios.put(
+                `${API_URL}/collections/${id}/snippets/${created._id}`,
+                {},
+                { withCredentials: true }
+              )
+            )
+          );
+          const added = results.filter((r) => r.status === "fulfilled").length;
+          if (added) {
+            toast.success(
+              `Added to ${added} collection${added > 1 ? "s" : ""}`
+            );
+          }
+        }
         resetForm();
       }
     }
@@ -144,12 +438,39 @@ function AddSnippetModal() {
               )}
             </h1>
             <p className="text-gray-400">
-              {modalMode === "edit-snippet" 
-                ? "Update your code snippet" 
+              {modalMode === "edit-snippet"
+                ? "Update your code snippet"
                 : "Share your code with the community"
               }
             </p>
           </div>
+
+          {/* Saved draft */}
+          {isAdd && draft && (
+            <div className="flex flex-wrap items-center justify-between gap-3 p-4 rounded-xl border border-[#7263F3]/40 bg-[#7263F3]/10">
+              <p className="text-sm text-gray-200">
+                You have an unsaved draft
+                {draft.title ? ` “${draft.title}”` : ""} from{" "}
+                {new Date(draft.savedAt).toLocaleString()}.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={restoreDraft}
+                  className="px-4 py-1.5 bg-[#7263F3] text-white rounded-full text-sm font-semibold hover:bg-[#6FCF97] transition-colors"
+                >
+                  Restore draft
+                </button>
+                <button
+                  type="button"
+                  onClick={discardDraft}
+                  className="px-4 py-1.5 bg-gray-600 text-white rounded-full text-sm"
+                >
+                  Discard
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Basic Info Section */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -166,33 +487,32 @@ function AddSnippetModal() {
             </div>
             <div>
               <label className="block text-white font-semibold mb-2">Language</label>
-              <select
-                name="language"
+              <GlassSelect
                 value={language}
-                onChange={(e) => setLanguage(e.target.value)}
-                className="w-full h-12 px-4 bg-1 text-white rounded-lg border-2 border-rgba-3 focus:border-[#7263F3] focus:bg-2 cursor-pointer transition-all duration-300"
-              >
-                {languages.map((lang) => (
-                  <option key={lang} value={lang} className="bg-1">
-                    {lang.charAt(0).toUpperCase() + lang.slice(1)}
-                  </option>
-                ))}
-              </select>
+                onChange={setLanguage}
+                options={languages.map((lang) => ({
+                  value: lang,
+                  label: lang.charAt(0).toUpperCase() + lang.slice(1),
+                }))}
+                ariaLabel="Language"
+                className="w-full h-12 px-4 bg-1 text-white rounded-lg border-2 border-rgba-3"
+              />
             </div>
           </div>
 
           {/* Visibility Section */}
           <div>
             <label className="block text-white font-semibold mb-2">Visibility</label>
-            <select
-              name="isPublic"
+            <GlassSelect
               value={isPublic.toString()}
-              onChange={(e) => setIsPublic(e.target.value === "true")}
-              className="w-full h-12 px-4 bg-1 text-white rounded-lg border-2 border-rgba-3 focus:border-[#7263F3] focus:bg-2 cursor-pointer transition-all duration-300"
-            >
-              <option value="true" className="bg-1">🌍 Public - Anyone can view</option>
-              <option value="false" className="bg-1">🔒 Private - Only you can view</option>
-            </select>
+              onChange={(v) => setIsPublic(v === "true")}
+              options={[
+                { value: "true", label: "🌍 Public - Anyone can view" },
+                { value: "false", label: "🔒 Private - Only you can view" },
+              ]}
+              ariaLabel="Visibility"
+              className="w-full h-12 px-4 bg-1 text-white rounded-lg border-2 border-rgba-3"
+            />
           </div>
 
           {/* Description Section */}
@@ -210,21 +530,65 @@ function AddSnippetModal() {
 
           {/* Code Section */}
           <div>
-            <label className="block text-white font-semibold mb-2">Code</label>
-            <div className="relative">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <label className="block text-white font-semibold">Code</label>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInput.current?.click()}
+                  className="px-3 py-1.5 flex items-center gap-2 rounded-full bg-rgba-3 text-gray-200 text-sm hover:bg-rgba-2 transition-colors"
+                >
+                  <FaFolderOpen /> Open file
+                </button>
+                <button
+                  type="button"
+                  onClick={suggest}
+                  disabled={aiBusy || code.trim().length < 10}
+                  className="px-4 py-1.5 flex items-center gap-2 rounded-full bg-[#7263F3] text-white text-sm font-semibold hover:bg-[#6FCF97] transition-colors disabled:opacity-50"
+                >
+                  <FaMagic />
+                  {aiBusy ? "Thinking…" : "Suggest title, description & tags"}
+                </button>
+              </div>
+            </div>
+            <input
+              ref={fileInput}
+              type="file"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) loadFile(file);
+                e.target.value = "";
+              }}
+            />
+            <div
+              className={`relative rounded-lg transition-shadow ${
+                dragging ? "ring-2 ring-[#7263F3]" : ""
+              }`}
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragging(true);
+              }}
+              onDragLeave={() => setDragging(false)}
+              onDrop={onDrop}
+            >
               <textarea
                 name="code"
                 value={code}
                 onChange={(e) => setCode(e.target.value)}
                 className="w-full py-4 px-4 bg-1 text-white rounded-lg border-2 border-rgba-3 focus:border-[#7263F3] focus:bg-2 transition-all duration-300 font-mono text-sm resize-none"
                 placeholder={`// Enter your ${language} code here...
-// Use proper indentation and formatting
-// Add comments to explain complex logic`}
+// or drop a code file onto this box`}
                 rows={15}
               />
               <div className="absolute top-2 right-2 text-xs text-gray-500 bg-1 px-2 py-1 rounded">
                 {language.toUpperCase()}
               </div>
+              {dragging && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-[#7263F3]/20 text-white font-semibold pointer-events-none">
+                  Drop the file to load it
+                </div>
+              )}
             </div>
           </div>
 
@@ -260,14 +624,110 @@ function AddSnippetModal() {
                   <p className="text-gray-600 text-xs mt-1">Tags will appear here once loaded</p>
                 </div>
               )}
+
+              {/* new tags suggested by the AI, created when the snippet is saved */}
+              {extraTags.map((name) => (
+                <button
+                  key={`new-${name}`}
+                  type="button"
+                  title="New tag, click to remove"
+                  className="py-2 px-4 flex items-center gap-2 text-white text-sm rounded-lg border border-dashed border-[#6BBE92] bg-[#6BBE92]/15 hover:bg-[#6BBE92]/30 transition-colors"
+                  onClick={() =>
+                    setExtraTags((prev) => prev.filter((t) => t !== name))
+                  }
+                >
+                  {name}
+                  <span className="text-[10px] uppercase opacity-80">new</span>
+                  <FaTimes className="text-[10px]" />
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2 mt-3">
+              <input
+                type="text"
+                value={newTag}
+                maxLength={30}
+                onChange={(e) => setNewTag(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    addCustomTag();
+                  }
+                }}
+                placeholder="Add your own tag, e.g. recursion"
+                className="flex-1 min-w-[200px] h-10 px-3 text-sm bg-1 text-white rounded-lg border-2 border-rgba-3 focus:border-[#7263F3]"
+              />
+              <button
+                type="button"
+                onClick={addCustomTag}
+                disabled={newTag.trim().length < 2}
+                className="h-10 px-5 text-sm bg-[#7263F3] text-white rounded-full font-semibold hover:bg-[#6FCF97] transition-colors disabled:opacity-50"
+              >
+                Add tag
+              </button>
             </div>
             <p className="text-gray-400 text-sm mt-2">
-              {tags && tags.length > 0 
-                ? "Select relevant tags to help others discover your snippet"
+              {tags && tags.length > 0
+                ? "Select relevant tags, or type your own, to help others discover your snippet"
                 : "Tags are being loaded from the server..."
               }
             </p>
           </div>
+
+          {/* Collections Section (new snippets) */}
+          {isAdd && (
+            <div>
+              <label className="flex items-center gap-2 text-white font-semibold mb-3">
+                <FaFolder className="text-[#7263F3]" /> Collections
+                <span className="text-xs font-normal text-gray-400">
+                  optional
+                </span>
+              </label>
+              <div className="flex flex-wrap items-center gap-3 p-4 bg-1 rounded-lg border-2 border-rgba-3">
+                {collections.map((c) => (
+                  <button
+                    key={c._id}
+                    type="button"
+                    onClick={() => toggleCollection(c._id)}
+                    className={`py-2 px-4 text-white text-sm rounded-lg border transition-all duration-300 hover:scale-105 ${
+                      selectedCollections.includes(c._id)
+                        ? "bg-gradient-to-r from-[#7263F3] to-[#6BBE92] border-[#7263F3] shadow-lg"
+                        : "bg-gray-700 hover:bg-gray-600 border-gray-600"
+                    }`}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+                {collections.length === 0 && (
+                  <span className="text-sm text-gray-400">
+                    No collections yet, create one:
+                  </span>
+                )}
+                <input
+                  type="text"
+                  value={newCollection}
+                  maxLength={60}
+                  onChange={(e) => setNewCollection(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      createCollection();
+                    }
+                  }}
+                  placeholder="New collection…"
+                  className="h-10 px-3 text-sm bg-1 text-white rounded-lg border-2 border-rgba-3 focus:border-[#7263F3] min-w-[160px]"
+                />
+                <button
+                  type="button"
+                  onClick={createCollection}
+                  disabled={newCollection.trim().length < 2}
+                  className="h-10 px-4 text-sm bg-[#7263F3] text-white rounded-full font-semibold hover:bg-[#6FCF97] transition-colors disabled:opacity-50"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex justify-end gap-4 pt-4 border-t border-rgba-3">
@@ -280,9 +740,14 @@ function AddSnippetModal() {
             </button>
             <button
               type="submit"
-              className="px-8 py-3 bg-gradient-to-r from-[#7263F3] to-[#6BBE92] text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-[#7263F3]/25 hover:scale-105 transition-all duration-300"
+              disabled={submitting}
+              className="px-8 py-3 bg-gradient-to-r from-[#7263F3] to-[#6BBE92] text-white rounded-lg font-semibold hover:shadow-lg hover:shadow-[#7263F3]/25 hover:scale-105 transition-all duration-300 disabled:opacity-60"
             >
-              {modalMode === "edit-snippet" ? "Update Snippet" : "Create Snippet"}
+              {modalMode === "edit-snippet"
+                ? "Update Snippet"
+                : submitting
+                ? "Creating…"
+                : "Create Snippet"}
             </button>
           </div>
         </form>

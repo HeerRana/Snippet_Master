@@ -25,7 +25,7 @@ function ContentProvider({ children }: Props) {
   return (
     <div className="relative">
       {!hideSidebarPaths.includes(pathname) && <Sidebar />}
-      <div className={`mt-[8vh] ${marginClass}`}>{children}</div>
+      <div className={`mt-[8vh] transition-[margin] duration-[380ms] ease-[cubic-bezier(0.32,0.72,0,1)] ${marginClass}`}>{children}</div>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 "use client";
 import React, { useEffect, useState } from "react";
+import GlassSelect from "@/components/GlassSelect/GlassSelect";
 import axios from "axios";
 import toast from "react-hot-toast";
 import { API_URL, SERVER_URL } from "@/utils/apiConfig";
@@ -111,17 +112,16 @@ function ShareLinkModal({ snippet, onClose }: Props) {
             password and make it expire.
           </p>
           <div className="flex flex-wrap gap-2">
-            <select
-              value={hours}
-              onChange={(e) => setHours(Number(e.target.value))}
+            <GlassSelect
+              value={String(hours)}
+              onChange={(v) => setHours(Number(v))}
+              options={EXPIRY_OPTIONS.map((o) => ({
+                value: String(o.hours),
+                label: `Expires: ${o.label}`,
+              }))}
+              ariaLabel="Link expiry"
               className="px-3 py-2 border-2 border-rgba-3 rounded-md bg-1 text-white"
-            >
-              {EXPIRY_OPTIONS.map((o) => (
-                <option key={o.hours} value={o.hours}>
-                  Expires: {o.label}
-                </option>
-              ))}
-            </select>
+            />
             <input
               type="text"
               value={password}

@@ -55,7 +55,8 @@ const sendOtp = async (user) => {
   console.log(`[2FA OTP CODE] for ${user.email}: ${code}`);
   console.log(`========================================\n`);
 
-  const senderEmail = process.env.USER_EMAIL || process.env.EMAIL_USER;
+  const senderEmail =
+    process.env.BREVO_SENDER_EMAIL || process.env.USER_EMAIL || process.env.EMAIL_USER;
 
   await sendEmail(
     "Your Snippet Master login code",
@@ -181,8 +182,9 @@ export const setTwoFactor = asyncHandler(async (req, res) => {
   }
 
   const hasEmailService = Boolean(
-    (process.env.USER_EMAIL || process.env.EMAIL_USER) &&
-    (process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD)
+    process.env.BREVO_API_KEY ||
+    ((process.env.USER_EMAIL || process.env.EMAIL_USER) &&
+      (process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD))
   );
 
   if (enabled && !hasEmailService) {

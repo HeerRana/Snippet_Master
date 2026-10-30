@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import GlassSelect from "@/components/GlassSelect/GlassSelect";
 import AIAnalysis from "@/components/AIAnalysis/AIAnalysis";
 import AIImprovements from "@/components/AIImprovements/AIImprovements";
 import AIDocumentation from "@/components/AIDocumentation/AIDocumentation";
@@ -65,17 +66,13 @@ const AIToolsPage = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-white">Input Code</h2>
               <div className="flex items-center gap-2">
-                <select
+                <GlassSelect
                   value={language}
-                  onChange={(e) => setLanguage(e.target.value)}
+                  onChange={setLanguage}
+                  options={languages}
+                  ariaLabel="Language"
                   className="px-3 py-1 bg-1 text-white rounded border border-rgba-3"
-                >
-                  {languages.map((lang) => (
-                    <option key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </option>
-                  ))}
-                </select>
+                />
                 <button
                   onClick={copyToClipboard}
                   className="px-3 py-1 bg-rgba-3 text-gray-300 rounded hover:bg-rgba-2 transition-colors"

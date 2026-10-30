@@ -40,7 +40,7 @@ export default function Home() {
       <Categories />
 
       <div
-        className={`px-8 pt-[6.3rem] pb-8 grid grid-cols-1 lg:grid-cols-2 gap-6`}
+        className={`px-8 pt-[5rem] pb-8 grid grid-cols-1 lg:grid-cols-2 gap-6`}
       >
         {publicSnippets.map((snippet: ISnippet) => {
           return <Snippet key={snippet._id} snippet={snippet} />;

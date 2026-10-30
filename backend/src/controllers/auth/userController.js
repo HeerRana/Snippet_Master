@@ -106,8 +106,9 @@ export const loginUser = asyncHandler(async (req, res) => {
 
   // 2-step verification: email a one-time code before creating a session
   const hasEmailService = Boolean(
-    (process.env.USER_EMAIL || process.env.EMAIL_USER) &&
-    (process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD)
+    process.env.BREVO_API_KEY ||
+    ((process.env.USER_EMAIL || process.env.EMAIL_USER) &&
+      (process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD))
   );
 
   if (userExists.twoFactorEnabled && hasEmailService) {

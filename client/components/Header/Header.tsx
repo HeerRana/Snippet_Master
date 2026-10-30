@@ -48,14 +48,14 @@ function Header() {
         <div className="flex items-center gap-3">
           <ThemeToggle />
           <button
-            className="relative h-[42px] px-6 bg-transparent border-2 border-[#7263F3] text-[#7263F3] flex items-center justify-center gap-2 rounded-lg font-semibold hover:bg-[#7263F3] hover:text-white transition-all duration-300 ease-in-out group"
+            className="relative h-[42px] px-4 sm:px-6 whitespace-nowrap bg-transparent border-2 border-[#7263F3] text-[#7263F3] flex items-center justify-center gap-2 rounded-lg font-semibold hover:bg-[#7263F3] hover:text-white transition-all duration-300 ease-in-out group"
             onClick={() => router.push("/login")}
           >
             <span className="text-lg group-hover:scale-110 transition-transform duration-300">{login}</span>
             <span>Login</span>
           </button>
           <button
-            className="relative h-[42px] px-6 bg-gradient-to-r from-[#7263F3] to-[#6BBE92] text-white flex items-center justify-center gap-2 rounded-lg font-semibold hover:shadow-lg hover:shadow-[#7263F3]/25 hover:scale-105 transition-all duration-300 ease-in-out group"
+            className="relative h-[42px] px-4 sm:px-6 whitespace-nowrap bg-gradient-to-r from-[#7263F3] to-[#6BBE92] text-white flex items-center justify-center gap-2 rounded-lg font-semibold hover:shadow-lg hover:shadow-[#7263F3]/25 hover:scale-105 transition-all duration-300 ease-in-out group"
             onClick={() => router.push("/register")}
           >
             <span className="text-lg group-hover:rotate-12 transition-transform duration-300">{register}</span>
@@ -76,7 +76,7 @@ function Header() {
             onClick={openModalForSearch}
             className="w-[42px] h-[42px] flex items-center justify-center bg-rgba-3 rounded-lg lg:hidden"
           >
-            <SearchIcon stroke="rgba(249,249,249,0.6)" />
+            <SearchIcon stroke="#9ca3af" />
           </button>
 
           <button

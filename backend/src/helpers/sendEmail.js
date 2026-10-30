@@ -22,19 +22,26 @@ const sendEmail = async (
   const emailUser = process.env.USER_EMAIL || process.env.EMAIL_USER;
   const emailPass = process.env.EMAIL_PASS || process.env.EMAIL_PASSWORD;
 
+  const brevoKey = process.env.BREVO_API_KEY;
+
   // Check if email credentials are configured
-  if (!emailUser || !emailPass) {
+  if (!brevoKey && (!emailUser || !emailPass)) {
     console.error("Email credentials not configured: USER_EMAIL or EMAIL_PASS missing");
     throw new Error("Email service not configured");
   }
 
-  const cleanPass = emailPass.replace(/\s+/g, "");
+  const cleanPass = (emailPass || "").replace(/\s+/g, "");
   const isGmail =
-    emailUser.toLowerCase().includes("@gmail.com") ||
+    (emailUser || "").toLowerCase().includes("@gmail.com") ||
     process.env.EMAIL_SERVICE?.toLowerCase() === "gmail";
 
+  // With a Brevo key, mail goes over HTTPS (Render's free tier blocks SMTP
+  // ports). The template is still rendered by handlebars through nodemailer's
+  // JSON transport, which sends nothing itself.
   const transporter = nodeMailer.createTransport(
-    isGmail
+    brevoKey
+      ? { jsonTransport: true }
+      : isGmail
       ? {
           service: "gmail",
           auth: {
@@ -92,6 +99,33 @@ const sendEmail = async (
   };
 
   try {
+    if (brevoKey) {
+      const rendered = JSON.parse((await transporter.sendMail(mailOptions)).message);
+      // Brevo only accepts senders verified in the account
+      const senderEmail = process.env.BREVO_SENDER_EMAIL || emailUser;
+      const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+        method: "POST",
+        headers: {
+          "api-key": brevoKey,
+          "content-type": "application/json",
+          accept: "application/json",
+        },
+        body: JSON.stringify({
+          sender: { name: "Snippet Master", email: senderEmail },
+          to: [{ email: send_to }],
+          replyTo: { email: senderEmail },
+          subject,
+          htmlContent: rendered.html,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(`Brevo ${res.status}: ${body.message || "send failed"}`);
+      }
+      console.log("Brevo message sent: %s", body.messageId);
+      return body;
+    }
+
     const info = await transporter.sendMail(mailOptions);
     console.log("Message sent: %s", info.messageId);
     return info;

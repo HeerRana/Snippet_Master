@@ -120,3 +120,62 @@ html[data-theme="light"] body {
 html[data-theme="light"] .hover\:text-white[class*="hover:bg-["]:hover {
   color: #ffffff;
 }
+
+/* tag chips: readable in dark and light, including hover */
+.tag-chip {
+  background: #3a3b3c;
+  color: #ffffff;
+  border: 0.1rem solid var(--color--rgba-1);
+  transition: background-color 0.25s ease, color 0.25s ease, transform 0.2s ease;
+}
+.tag-chip:hover {
+  background: #ffffff;
+  color: #1f2937;
+  transform: translateY(-1px);
+}
+.tag-chip.tag-chip-active,
+.tag-chip.tag-chip-active:hover {
+  background: #7263f3;
+  color: #ffffff;
+}
+html[data-theme="light"] .tag-chip {
+  background: #e5e7eb;
+  color: #1f2937;
+}
+html[data-theme="light"] .tag-chip:hover {
+  background: #7263f3;
+  color: #ffffff;
+}
+html[data-theme="light"] .tag-chip.tag-chip-active {
+  background: #7263f3;
+  color: #ffffff;
+}
+
+/* the logo image is light-on-dark: flip it for the light theme */
+html[data-theme="light"] img[alt="Snippy Logo"] {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* carousel arrows stay visible on light backgrounds */
+html[data-theme="light"] .bg-3 button[class*="rounded-full"] {
+  background: #ffffff;
+  color: #1f2937;
+  border-color: rgba(15, 23, 42, 0.2);
+}
+
+/* hidden scrollbar for the sidebar when the window is short */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* read-only link box in the QR dialog: readable in both themes */
+.link-field {
+  color: #e5e7eb;
+}
+html[data-theme="light"] .link-field {
+  color: #1f2937;
+  background-color: #f3f4f8;
+}

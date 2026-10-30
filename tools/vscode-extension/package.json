@@ -1,0 +1,38 @@
+{
+  "name": "snippet-master",
+  "displayName": "Snippet Master",
+  "description": "Save the selected code to Snippet Master and search or insert your snippets without leaving the editor",
+  "version": "1.0.0",
+  "publisher": "snippet-master",
+  "engines": { "vscode": "^1.80.0" },
+  "categories": ["Snippets", "Other"],
+  "main": "./extension.js",
+  "activationEvents": [],
+  "contributes": {
+    "commands": [
+      { "command": "snippetMaster.save", "title": "Snippet Master: Save selection as snippet" },
+      { "command": "snippetMaster.search", "title": "Snippet Master: Search and insert snippet" }
+    ],
+    "menus": {
+      "editor/context": [
+        { "command": "snippetMaster.save", "when": "editorHasSelection", "group": "navigation" }
+      ]
+    },
+    "configuration": {
+      "title": "Snippet Master",
+      "properties": {
+        "snippetMaster.apiUrl": {
+          "type": "string",
+          "default": "https://snippet-master.onrender.com/api/v1",
+          "description": "Backend API URL, ends with /api/v1"
+        },
+        "snippetMaster.token": {
+          "type": "string",
+          "default": "",
+          "description": "Personal access token from Settings > VS Code extension"
+        }
+      }
+    }
+  },
+  "license": "MIT"
+}

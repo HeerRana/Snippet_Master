@@ -41,7 +41,7 @@ function LoginForm() {
           autoComplete="one-time-code"
           maxLength={6}
           value={otp}
-          onChange={(e) => setOtp(e.target.value.replace(/D/g, ""))}
+          onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
           className="w-full px-4 py-3 text-center text-2xl tracking-[0.5em] border-[2px] border-rgba-3 rounded-md outline-[#6FCF97] text-white bg-1"
           placeholder="000000"
           autoFocus

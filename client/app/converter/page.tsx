@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import GlassSelect from "@/components/GlassSelect/GlassSelect";
 import { FaExchangeAlt, FaCopy, FaDownload } from "react-icons/fa";
 import toast from "react-hot-toast";
 import SyntaxHighlighter from "react-syntax-highlighter";
@@ -136,17 +137,13 @@ const CodeConverter = () => {
           <div className="bg-2 p-6 rounded-lg border border-rgba-3">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-white">Source Code</h2>
-              <select
+              <GlassSelect
                 value={sourceLanguage}
-                onChange={(e) => setSourceLanguage(e.target.value)}
+                onChange={setSourceLanguage}
+                options={languages}
+                ariaLabel="Source language"
                 className="px-3 py-1 bg-1 text-white rounded border border-rgba-3"
-              >
-                {languages.map((lang) => (
-                  <option key={lang.value} value={lang.value}>
-                    {lang.label}
-                  </option>
-                ))}
-              </select>
+              />
             </div>
             
             <div className="relative">
@@ -171,17 +168,13 @@ const CodeConverter = () => {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-white">Converted Code</h2>
               <div className="flex items-center gap-2">
-                <select
+                <GlassSelect
                   value={targetLanguage}
-                  onChange={(e) => setTargetLanguage(e.target.value)}
+                  onChange={setTargetLanguage}
+                  options={languages}
+                  ariaLabel="Target language"
                   className="px-3 py-1 bg-1 text-white rounded border border-rgba-3"
-                >
-                  {languages.map((lang) => (
-                    <option key={lang.value} value={lang.value}>
-                      {lang.label}
-                    </option>
-                  ))}
-                </select>
+                />
                 {convertedCode && (
                   <button
                     onClick={() => downloadCode(convertedCode, targetLanguage)}

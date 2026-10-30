@@ -43,9 +43,13 @@ export const SnippetsProvider = ({ children }) => {
       toast.success("Snippet created successfully");
 
       closeModal();
+
+      // callers (the add-snippet form) need the new snippet, e.g. to put it in collections
+      return res.data;
     } catch (error) {
       console.log("Error creating snippet", error);
-      toast.error(error.response.data.message);
+      toast.error(error.response?.data?.message || "Could not create the snippet");
+      return null;
     }
   };
 

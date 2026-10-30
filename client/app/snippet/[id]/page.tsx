@@ -4,7 +4,6 @@ import Snippet from "@/components/Snippet/Snippet";
 import AIAnalysis from "@/components/AIAnalysis/AIAnalysis";
 import AIImprovements from "@/components/AIImprovements/AIImprovements";
 import AIDocumentation from "@/components/AIDocumentation/AIDocumentation";
-import ShareSnippet from "@/components/ShareSnippet/ShareSnippet";
 import { useSnippetContext } from "@/context/snippetsContext";
 import { ISnippet } from "@/types/types";
 import React, { useEffect, useState } from "react";
@@ -33,10 +32,7 @@ function page({ params: { id } }: Props) {
     <main className="p-8 relative min-h-[90vh]">
       {snippet?.title ? (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-white">{snippet.title}</h1>
-            <ShareSnippet snippetId={snippet._id} snippetTitle={snippet.title} />
-          </div>
+          <h1 className="text-2xl font-bold text-white">{snippet.title}</h1>
           <Snippet
             snippet={snippet}
             height="640px"

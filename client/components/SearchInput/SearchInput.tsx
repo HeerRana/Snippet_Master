@@ -71,7 +71,7 @@ function SearchInput({ wFull }: Props) {
       }`}
     >
       <div className="absolute top-[50%] left-3 translate-y-[-50%]">
-        <SearchIcon stroke="rgba(249,249,249,0.6)" />
+        <SearchIcon stroke="#9ca3af" />
       </div>
       <input
         type="text"
@@ -83,7 +83,7 @@ function SearchInput({ wFull }: Props) {
       />
       {!searchQuery && (
         <span className="absolute top-[50%] left-10 translate-y-[-50%] text-gray-400 pointer-events-none text-nowrap">
-          Search for snippets e.g. Nested Loops etc.
+          Search titles, code and languages e.g. Nested Loops
         </span>
       )}
     </form>

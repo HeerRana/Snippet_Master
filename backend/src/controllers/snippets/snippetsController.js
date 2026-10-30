@@ -3,6 +3,56 @@ import mongoose from "mongoose";
 import Snippet from "../../models/snippets/SnippetModel.js";
 import { saveVersion, contentChanged } from "../../helpers/versionHelper.js";
 
+// escape user input before using it inside a RegExp
+const escapeRegex = (text) => String(text).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+// full-text style search over title, description, code and language
+const searchFilter = (search) => {
+  const rx = { $regex: escapeRegex(search).slice(0, 100), $options: "i" };
+  return [{ title: rx }, { description: rx }, { code: rx }, { language: rx }];
+};
+
+const OBJECT_ID = /^[a-f\d]{24}$/i;
+
+// Tags arrive as ids (existing tags) or as names (new tags, created on the fly).
+// A name that merely looks like an id (12 characters) must not be mistaken for one,
+// so ids are matched strictly as 24 hex characters.
+const resolveTagIds = async (tags, userId) => {
+  const ids = [];
+
+  for (const tag of tags) {
+    const value = tag && typeof tag === "object" && tag._id ? String(tag._id) : tag;
+
+    if (typeof value === "string" && OBJECT_ID.test(value)) {
+      ids.push(value);
+      continue;
+    }
+
+    if (typeof value !== "string" || !value.trim()) {
+      return { error: `Invalid tag format: ${tag}` };
+    }
+
+    const name = value.trim().replace(/^#/, "").replace(/\s+/g, " ").toLowerCase();
+    if (name.length < 2 || name.length > 30) {
+      return { error: `Tag "${value}" must be 2 to 30 characters` };
+    }
+
+    try {
+      const Tags = mongoose.model("Tags");
+      let existing = await Tags.findOne({ name });
+      if (!existing) {
+        existing = await Tags.create({ name, user: userId });
+      }
+      ids.push(existing._id);
+    } catch (error) {
+      console.log("Error processing tag:", error);
+      return { error: `Invalid tag: ${tag}` };
+    }
+  }
+
+  return { ids };
+};
+
 export const createSnippet = asyncHandler(async (req, res) => {
   try {
     const userId = req.user._id;
@@ -36,34 +86,12 @@ export const createSnippet = asyncHandler(async (req, res) => {
       return res.status(400).json({ message: "Please provide at least one tag" });
     }
 
-    // Process tags - handle both ObjectIds and string tags
-    const processedTags = [];
-    for (const tag of tags) {
-      if (mongoose.Types.ObjectId.isValid(tag)) {
-        // If it's a valid ObjectId, use it directly
-        processedTags.push(tag);
-      } else if (typeof tag === 'string' && tag.trim()) {
-        // If it's a string, try to find or create the tag
-        try {
-          const Tags = mongoose.model('Tags');
-          let existingTag = await Tags.findOne({ name: tag.trim().toLowerCase() });
-          
-          if (!existingTag) {
-            // Create new tag
-            existingTag = await Tags.create({
-              name: tag.trim().toLowerCase(),
-              user: userId,
-            });
-          }
-          processedTags.push(existingTag._id);
-        } catch (error) {
-          console.log("Error processing tag:", error);
-          return res.status(400).json({ message: `Invalid tag: ${tag}` });
-        }
-      } else {
-        return res.status(400).json({ message: `Invalid tag format: ${tag}` });
-      }
+    // Process tags - ids of existing tags and names of new ones
+    const resolved = await resolveTagIds(tags, userId);
+    if (resolved.error) {
+      return res.status(400).json({ message: resolved.error });
     }
+    const processedTags = resolved.ids;
 
     const snippet = new Snippet({
       title,
@@ -120,10 +148,7 @@ export const getPublicSnippets = asyncHandler(async (req, res) => {
     }
 
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: "i" } }, // i for case-insensitive
-        { description: { $regex: search, $options: "i" } },
-      ];
+      query.$or = searchFilter(search);
     }
 
     const snippets = await Snippet.find(query)
@@ -172,10 +197,7 @@ export const getUserSnippets = asyncHandler(async (req, res) => {
     }
 
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: "i" } }, // i for case-insensitive
-        { description: { $regex: search, $options: "i" } },
-      ];
+      query.$or = searchFilter(search);
     }
 
     const snippets = await Snippet.find(query)
@@ -261,7 +283,13 @@ export const updateSnippet = asyncHandler(async (req, res) => {
     snippet.description = description || snippet.description;
     snippet.code = code || snippet.code;
     snippet.language = language || snippet.language;
-    snippet.tags = tags || snippet.tags;
+    if (Array.isArray(tags)) {
+      const resolved = await resolveTagIds(tags, userId);
+      if (resolved.error) {
+        return res.status(400).json({ message: resolved.error });
+      }
+      snippet.tags = resolved.ids;
+    }
     snippet.isPublic = isPublic !== undefined ? isPublic : snippet.isPublic;
 
     await snippet.save();
@@ -381,10 +409,7 @@ export const getLikedSnippets = asyncHandler(async (req, res) => {
 
     // search by title or description
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: "i" } }, // i for case-insensitive
-        { description: { $regex: search, $options: "i" } },
-      ];
+      query.$or = searchFilter(search);
     }
 
     // fetch the paginated liked snippets
@@ -483,10 +508,7 @@ export const getPopularSnippets = asyncHandler(async (req, res) => {
     }
 
     if (search) {
-      query.$or = [
-        { title: { $regex: search, $options: "i" } }, // i for case-insensitive
-        { description: { $regex: search, $options: "i" } },
-      ];
+      query.$or = searchFilter(search);
     }
 
     // fetch popular snippets

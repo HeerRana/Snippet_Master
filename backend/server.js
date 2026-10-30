@@ -9,6 +9,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import { registerCollabHandlers } from "./src/helpers/collabSocket.js";
 
 dotenv.config();
 
@@ -106,6 +107,9 @@ app.use(cookieParser());
 // Socket.IO connection handling
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
+
+  // live collaborative editing (Yjs updates relayed per room)
+  registerCollabHandlers(io, socket);
 
   // Join user to their personal room
   socket.on("join-user-room", (userId) => {

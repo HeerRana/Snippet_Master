@@ -6,6 +6,7 @@ import { FaGithub, FaLinkedin, FaEnvelope } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { API_URL } from "@/utils/apiConfig";
 import TwoFactorSettings from "@/components/auth/TwoFactorSettings";
+import DeveloperAccess from "@/components/auth/DeveloperAccess";
 
 function page() {
   const { user, updateUser, changePassword, userState, handlerUserInput } =
@@ -360,6 +361,7 @@ function page() {
         </div>
       </form>
       <TwoFactorSettings />
+      <DeveloperAccess />
     </div>
   </main>
   );
